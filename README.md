@@ -87,13 +87,16 @@ Use the same `npx -y @kud/mcp-gtv` command with stdio transport. Consult your cl
 
 ## 🛠 Tools Reference
 
-| Tool               | Description                                      | Arguments        |
-| ------------------ | ------------------------------------------------ | ---------------- |
-| `gtv_list_devices` | List all paired devices, marking the current one | —                |
-| `gtv_set_device`   | Switch the active device by host (IP) or name    | `device: string` |
-| `gtv_send_key`     | Send a remote key press to the current device    | `key: string`    |
-| `gtv_type_text`    | Type text into the focused field via IME         | `text: string`   |
-| `gtv_launch_app`   | Launch an app by name/id or raw deep-link URI    | `app: string`    |
+Every control tool returns the TV's resulting state (connected, powered, foreground app, volume) so the model can confirm its action landed.
+
+| Tool               | Description                                                    | Arguments        |
+| ------------------ | -------------------------------------------------------------- | ---------------- |
+| `gtv_list_devices` | List all paired devices, marking the current one               | —                |
+| `gtv_set_device`   | Switch the active device by host (IP) or name                  | `device: string` |
+| `gtv_get_state`    | Read live state: connected, powered, foreground app, volume    | —                |
+| `gtv_send_key`     | Send a remote key press; returns resulting state               | `key: string`    |
+| `gtv_type_text`    | Type text into the focused field via IME; returns state        | `text: string`   |
+| `gtv_launch_app`   | Launch an app by name/id or URI; waits for and returns the app | `app: string`    |
 
 ### Valid keys for `gtv_send_key`
 

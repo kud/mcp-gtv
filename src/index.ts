@@ -229,6 +229,20 @@ export const typeGtvText = async ({ text }: { text: string }) => {
   }
 }
 
+// market://launch?id=X is store-mediated: the Play Store may auto-launch the app
+// OR just show its listing (with an "Open" button) even when it IS installed.
+// So landing here means "opened the store page" — NOT "the app is missing".
+const PLAY_STORE_PACKAGE = "com.android.vending"
+
+// The package we expect to foreground — from the catalog entry, or parsed out of
+// a market://launch?id=<pkg> URI — so we can confirm the right app came up.
+const expectedPackage = (app: string, deeplink: string): string | null => {
+  const entry = findApp(app)
+  if (entry) return entry.packageName
+  const match = deeplink.match(/[?&]id=([^&]+)/)
+  return match ? decodeURIComponent(match[1]!) : null
+}
+
 export const launchGtvApp = async ({ app }: { app: string }) => {
   const deeplink = app.includes("://") ? app : resolveAppLink(app)
   if (!deeplink)
@@ -240,10 +254,30 @@ export const launchGtvApp = async ({ app }: { app: string }) => {
   try {
     const s = await ensureSession()
     const before = s.state.currentApp
+    const want = expectedPackage(app, deeplink)
     s.launchApp(deeplink)
     // Wait for the TV to report the new foreground app, so we can confirm it.
-    await waitForChange(s, (state) => state.currentApp !== before, 5000)
-    return ok({ launched: app, deeplink, ...snapshot(s) })
+    const changed = await waitForChange(
+      s,
+      (state) => state.currentApp !== before,
+      5000,
+    )
+    const landed = s.state.currentApp
+    const outcome =
+      want && landed === want
+        ? { confirmed: true }
+        : landed === PLAY_STORE_PACKAGE
+          ? {
+              confirmed: false,
+              note: "Opened the Play Store page rather than launching the app directly. market:// links are store-mediated and don't always auto-launch — if the store shows an 'Open' button the app IS installed; send `select` to open it. (Reliable direct launch isn't available over the remote protocol.)",
+            }
+          : changed
+            ? { confirmed: true }
+            : {
+                confirmed: false,
+                note: "Could not confirm the foreground app changed within 5s — it may already have been open, or the launch was slow.",
+              }
+    return ok({ launched: app, deeplink, ...outcome, ...snapshot(s) })
   } catch (e) {
     return err(reason(e))
   }

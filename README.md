@@ -15,6 +15,8 @@
 > **Proof of concept — experimental and unfinished.**
 > This package is not yet published to npm. The API, tool names, and behaviour may change or break at any time. Run it from source (see [Development](#-development)). Do not use in production.
 
+`@kud/mcp-gtv` exposes Google TV control to any MCP client, letting an assistant open apps, control playback, type into search fields, and read back what's currently on the TV.
+
 ## 🌟 Features
 
 - 🔌 **Zero credentials** — reads paired devices from `~/.config/gtv/config.json`; no API key, no token, no extra setup

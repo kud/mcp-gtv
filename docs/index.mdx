@@ -1,0 +1,109 @@
+---
+title: "mcp-gtv"
+description: "MCP server for Google TV — control paired devices (keys, text, app launch) via @kud/gtv."
+---
+
+## ⚠️ Proof of concept
+
+This is an **early-stage proof of concept** — experimental, unstable, and **not yet published to npm**. The API, tool names, and behaviour may change or break at any time. Run it from source (see [Development](#-development)). Do not use in production.
+
+`@kud/mcp-gtv` is an MCP server that exposes Google TV control to any MCP client, letting an assistant open apps, control playback, type into search fields, and read back what's currently on the TV.
+
+## 🚀 Getting started
+
+### 1. Pair your TV first
+
+Pairing is handled by [`@kud/gtv-cli`](https://kud.io/projects/gtv-cli), not this server. If you have not paired a device yet:
+
+```sh
+npx @kud/gtv-cli pair
+```
+
+Follow the PIN prompt on the TV. The paired device is written to `~/.config/gtv/config.json` — the shared config store that `mcp-gtv` reads automatically. You only need to do this once per device.
+
+### 2. Run the server from source
+
+The package is not yet on npm, so there is no `npx @kud/mcp-gtv` form yet. Clone the repo and run it with `tsx`:
+
+```sh
+git clone https://github.com/kud/mcp-gtv.git
+cd mcp-gtv
+npm install
+npm run dev
+```
+
+Requires Node.js ≥ 22.
+
+### 3. Wire it into an MCP client
+
+The server uses **stdio transport** and needs no environment variables. Point your client at the local clone:
+
+```json
+{
+  "mcpServers": {
+    "mcp-gtv": {
+      "command": "npx",
+      "args": ["tsx", "/path/to/mcp-gtv/src/index.ts"]
+    }
+  }
+}
+```
+
+The repo also ships a `.mcp.json` at the root — open it in Claude Code and the server is picked up automatically.
+
+### 4. Ask naturally
+
+> "What's playing on the TV right now?"
+> "Open Netflix"
+> "Turn up the volume"
+> "Go back to the home screen"
+> "Type 'Blade Runner' into the search field"
+
+## 🛠️ Tools
+
+Six tools are exposed. **Every control tool returns the TV's resulting state** (connected, powered, foreground app, volume) so the model can confirm its action landed.
+
+| Tool               | Description                                                                                                           | Arguments        |
+| ------------------ | --------------------------------------------------------------------------------------------------------------------- | ---------------- |
+| `gtv_list_devices` | List all paired devices, marking the current one                                                                      | —                |
+| `gtv_set_device`   | Switch the active device by host (IP) or name                                                                         | `device: string` |
+| `gtv_get_state`    | Read live state: connected, powered, foreground app (package + friendly name), volume                                 | —                |
+| `gtv_send_key`     | Send a remote key press; power and volume keys wait for the state echo                                                | `key: string`    |
+| `gtv_type_text`    | Type text into the focused field via IME                                                                              | `text: string`   |
+| `gtv_launch_app`   | Launch an app by catalogue name/id or deep-link URI; waits for and returns the foreground app with a `confirmed` flag | `app: string`    |
+
+### Valid keys for `gtv_send_key`
+
+```
+home  back  power  up  down  left  right  select
+play  stop  next   prev  fwd  rwd
+vol-up  vol-down  mute
+menu  search  sleep  wakeup  input  enter
+channel-up  channel-down  info  guide  settings
+```
+
+### App catalogue for `gtv_launch_app`
+
+`netflix`, `youtube`, `primevideo`, `plex`, `putio`, `arte`, `disney`, `spotify`, `twitch`, `max`. You can also pass any raw deep-link URI directly (e.g. `intent://...` or `market://launch?id=com.example.app`).
+
+## ⚠️ Known limitations
+
+- **No screen awareness.** The Android TV Remote protocol only streams power state, volume, and foreground app package — never screen contents, focus position, or menu structure. The server can launch apps, control playback, type into search, and confirm those actions landed. It **cannot** see the screen, so navigating menus, folders, or lists inside an app is not reliably possible. Deep in-app navigation would require an ADB or computer-vision channel, which is deliberately out of scope.
+- **Store-mediated app launching.** App launch uses `market://launch?id=<package>`, which the Play Store may auto-launch OR simply display as a store listing (showing an "Open" button) even when the app is installed. Reliable direct launch is not available over the remote protocol. When the store page opens instead, send `select` to open the app.
+- **Current device only.** All tools act on the device selected by `gtv_set_device` (or the default from the config). Interactive pairing over MCP is not implemented — pair first with `npx @kud/gtv-cli pair`.
+- **First-call latency.** The first tool call in a session opens a TLS connection and waits for the TV's telemetry burst to settle (~350 ms quiet, capped at 2 s). Subsequent calls reuse the warm session and are near-instant.
+
+## 🔧 Development
+
+```sh
+git clone https://github.com/kud/mcp-gtv.git
+cd mcp-gtv
+npm install
+npm run dev          # run source directly with tsx
+npm run typecheck    # type-check without emitting
+npm run build        # compile to dist/ via tsup
+npm run test         # run the test suite (Node built-in runner)
+npm run inspect      # open the MCP Inspector for interactive tool testing
+```
+
+Use `npm run inspect` to open the MCP Inspector and exercise all tools interactively without a full MCP client. A manual test plan covering every tool against a real TV lives in `TESTING.md` — run through it before any publish.

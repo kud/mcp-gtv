@@ -27,6 +27,8 @@
 - 📡 **State feedback** — every control tool returns the TV's resulting state (power, volume, foreground app) so the model can confirm its action landed
 - 🤖 **Broad MCP client support** — stdio transport works with Claude Desktop, Claude Code, Cursor, and any MCP-compatible client
 
+![A laptop on the sofa reads "Open YouTube on the TV", and the TV across the room opens YouTube](assets/living-room.jpg)
+
 ## 🚀 Quick Start
 
 ### 1. Pair your TV first

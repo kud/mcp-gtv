@@ -40,9 +40,9 @@
     "prepublishOnly": "npm run build"
   },
   "dependencies": {
-    "@kud/gtv": "0.1.2",
-    "@modelcontextprotocol/sdk": "1.27.1",
-    "zod": "4.3.6"
+    "@kud/gtv": "0.1.3",
+    "@modelcontextprotocol/sdk": "1.32.2",
+    "zod": "4.6.7"
   },
   "devDependencies": {
     "@types/node": "25.9.4",
@@ -55,5 +55,9 @@
   },
   "publishConfig": {
     "access": "public"
+  },
+  "overrides": {
+    "node-forge": "1.4.3",
+    "protobufjs": "7.6.6"
   }
 }
